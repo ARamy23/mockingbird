@@ -25,6 +25,16 @@ import Foundation
 /// Represents `nil` return values to prevent Swift from implicitly bridging to `NSNull`.
 @objc(MKBNilValue) public class NilValue: NSObject {}
 
+private protocol AnyOptional {
+  var isNil: Bool { get }
+}
+
+/// Used to determine if a type-erased value is `nil`.
+extension Optional: AnyOptional {
+  /// Whether the boxed value is equal to `nil`.
+  var isNil: Bool { self == nil }
+}
+
 extension StubbingContext {
   /// Used to indicate that no implementation exists for a given invocation.
   @objc public static let noImplementation = NSObject()
@@ -43,7 +53,7 @@ extension StubbingContext {
         ?? Self.noImplementation
       // It's possible to stub `NSNull` as a return value, so we need to check that this is an
       // actual nil Swift value before creating a `NilValue` representation for Obj-C.
-      if !(value is NSNull) && MKBCheckIfTypeErasedNil(value) {
+      if !(value is NSNull) && (value as? AnyOptional)?.isNil ?? false {
         return NilValue()
       } else {
         return value
